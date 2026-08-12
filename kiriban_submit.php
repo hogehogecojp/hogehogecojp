@@ -32,8 +32,10 @@ if ($now - $last_submit < 10) { // 10秒間隔制限
 $_SESSION['last_kiriban_submit'] = $now;
 
 // 入力取得とサニタイズ（文字数制限追加）
-$name = htmlspecialchars(trim($_POST['name'] ?? ''), ENT_QUOTES, 'UTF-8');
-$comment = htmlspecialchars(trim($_POST['comment'] ?? ''), ENT_QUOTES, 'UTF-8');
+$nameInput = $_POST['name'] ?? '';
+$commentInput = $_POST['comment'] ?? '';
+$name = is_string($nameInput) ? htmlspecialchars(trim($nameInput), ENT_QUOTES, 'UTF-8') : '';
+$comment = is_string($commentInput) ? htmlspecialchars(trim($commentInput), ENT_QUOTES, 'UTF-8') : '';
 
 // 文字数制限
 $name = mb_substr($name, 0, 50);      // 50文字まで
@@ -47,16 +49,15 @@ foreach ($prohibited_words as $word) {
 }
 
 
-// カウンター値を取得（counter.txtから直接読み取り）
-$counter_file = "counter.txt";
-if (!file_exists($counter_file)) {
+// 画面に表示した番号を訪問IDから取得
+$visitId = $_POST['visit_id'] ?? '';
+if (!is_string($visitId) || preg_match('/\A[a-f0-9]{32}\z/', $visitId) !== 1) {
     header("Location: index.html");
     exit;
 }
-$number = intval(trim(file_get_contents($counter_file)));
 
-// ファイルサイズ制限チェック
-if (file_exists("kiriban.txt") && filesize("kiriban.txt") > 100000) { // 100KB制限
+$number = $_SESSION['counter_visits'][$visitId] ?? null;
+if (!is_int($number) || $number <= 0) {
     header("Location: index.html");
     exit;
 }
@@ -71,17 +72,61 @@ if ($comment !== '') {
 }
 
 // ファイルを読み込み、3行目に挿入
-$file = "kiriban.txt";
-$lines = file_exists($file) ? file($file, FILE_IGNORE_NEW_LINES) : [];
+$file = getenv('HOGEHOGE_KIRIBAN_FILE') ?: __DIR__ . "/kiriban.txt";
+$kiribanHandle = @fopen($file, 'c+');
+if ($kiribanHandle === false || !flock($kiribanHandle, LOCK_EX)) {
+    if (is_resource($kiribanHandle)) {
+        fclose($kiribanHandle);
+    }
+    header("Location: index.html");
+    exit;
+}
+
+$fileStat = fstat($kiribanHandle);
+if ($fileStat === false || $fileStat['size'] > 100000) { // 100KB制限
+    flock($kiribanHandle, LOCK_UN);
+    fclose($kiribanHandle);
+    header("Location: index.html");
+    exit;
+}
+
+$contents = stream_get_contents($kiribanHandle);
+if ($contents === false) {
+    flock($kiribanHandle, LOCK_UN);
+    fclose($kiribanHandle);
+    header("Location: index.html");
+    exit;
+}
+
+$lines = $contents === '' ? [] : preg_split('/\r\n|\r|\n/', rtrim($contents, "\r\n"));
+if ($lines === false) {
+    flock($kiribanHandle, LOCK_UN);
+    fclose($kiribanHandle);
+    header("Location: index.html");
+    exit;
+}
 
 // 3行目に挿入（インデックス2）
 array_splice($lines, 2, 0, $entry);
 
 // 保存（1行ずつ + 最後に \n を1つだけ）
-if (file_put_contents($file, implode("\n", $lines), LOCK_EX) === false) {
+$newContents = implode("\n", $lines);
+rewind($kiribanHandle);
+if (!ftruncate($kiribanHandle, 0)
+    || fwrite($kiribanHandle, $newContents) !== strlen($newContents)
+    || !fflush($kiribanHandle)
+) {
+    flock($kiribanHandle, LOCK_UN);
+    fclose($kiribanHandle);
     header("Location: index.html");
     exit;
 }
+
+flock($kiribanHandle, LOCK_UN);
+fclose($kiribanHandle);
+
+unset($_SESSION['counter_visits'][$visitId]);
+session_write_close();
 
 header("Location: index.html");
 exit;

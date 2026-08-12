@@ -234,7 +234,7 @@
         </h1>
 
         <!-- アクセスカウンター -->
-        <font size="2">あなたは <img src="counter.php" height="28" style="max-width: 100%;" alt="アクセスカウンター"> 人目のお客さまです。</font>
+        <font size="2">あなたは <img id="access-counter" height="28" style="display:none; max-width:100%;" alt="アクセスカウンター"><noscript><img src="counter.php" height="28" style="max-width:100%;" alt="アクセスカウンター（JavaScript無効時）"></noscript> 人目のお客さまです。</font>
         <!-- /アクセスカウンター -->
 
         <br>
@@ -335,6 +335,12 @@
                 function validateKiribanForm() {
                   var name = document.getElementById('name').value;
                   var comment = document.getElementById('comment').value;
+                  var visitId = document.getElementById('kiriban_visit_id').value;
+
+                  if (visitId === '') {
+                    alert('番号を取得できませんでした。ページを再読み込みしてください。');
+                    return false;
+                  }
 
                   // 基本的な文字数チェック
                   if (name.length > 50) {
@@ -363,9 +369,10 @@
               <!-- /キリ番バリデーション -->
 
               <form action="kiriban_submit.php" method="post" onsubmit="return validateKiribanForm();">
+                <input type="hidden" name="visit_id" id="kiriban_visit_id" value="">
                 <div style="font-family:'ＭＳ Ｐゴシック'; font-size:12px; text-align:left; background-color:#ffe0ff; padding:5px; width:95%;">
                   <div style="margin-bottom:5px;">
-                    <iframe src="counter_view.php" title="あなたが何番目か表示するカウンター" width="100%" height="40" frameborder="0" scrolling="no"></iframe>
+                    <iframe id="kiriban-counter-frame" title="あなたが何番目か表示するカウンター" width="100%" height="40" frameborder="0" scrolling="no"></iframe>
                   </div>
 
                   <label for="name">お名前（省略可）：</label><br>
@@ -379,6 +386,43 @@
                   </div>
                 </div>
               </form>
+
+              <script>
+                (function () {
+                  var counterImage = document.getElementById('access-counter');
+                  var counterFrame = document.getElementById('kiriban-counter-frame');
+                  var visitInput = document.getElementById('kiriban_visit_id');
+                  var visitId = '';
+
+                  // ページごとに32桁の訪問IDを作る（古いブラウザでは乱数へフォールバック）
+                  if (window.crypto && window.crypto.getRandomValues) {
+                    var randomValues = new Uint8Array(16);
+                    window.crypto.getRandomValues(randomValues);
+                    for (var i = 0; i < randomValues.length; i++) {
+                      visitId += ('0' + randomValues[i].toString(16)).slice(-2);
+                    }
+                  } else {
+                    for (var j = 0; j < 32; j++) {
+                      visitId += Math.floor(Math.random() * 16).toString(16);
+                    }
+                  }
+
+                  window.setKiribanVisitId = function (value) {
+                    if (/^[a-f0-9]{32}$/.test(value)) {
+                      visitInput.value = value;
+                    }
+                  };
+
+                  counterImage.onload = function () {
+                    counterFrame.src = 'counter_view.php?visit_id=' + encodeURIComponent(visitId);
+                  };
+                  counterImage.onerror = function () {
+                    counterFrame.src = 'counter_view.php?visit_id=' + encodeURIComponent(visitId);
+                  };
+                  counterImage.style.display = 'inline';
+                  counterImage.src = 'counter.php?visit_id=' + encodeURIComponent(visitId);
+                })();
+              </script>
 
               <!-- /フォーム -->
 
