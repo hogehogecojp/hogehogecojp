@@ -14,17 +14,27 @@
 - **セキュリティ対策**: XSS 防止、CSRF 対策、ファイルアクセス制御
 
 ## ファイル構成
-- `index.html`: メインのHTML ファイル（レトロデザイン）
-- `counter.php`: カウンター機能を提供するPHP スクリプト（動的画像生成）
-- `counter_view.php`: 現在のカウンター値を表示するPHP スクリプト
-- `kiriban_submit.php`: キリ番送信機能を提供するPHP スクリプト
-- `kiriban_view.php`: 過去のキリ番ゲッターリストを表示するPHP スクリプト（表示量を制限）
-- `session_boot.php`: session開始と送信元判定の共通処理
-- `.htaccess`: セキュリティ設定とファイルアクセス制御（モジュール版PHP向け設定を含む）
-- `.user.ini`: CGI/FastCGI環境向けのPHP 設定
-- `img/`: Web サイトで使用される画像ファイル
-- `img/original_gif/`: オリジナル画像ファイルのバックアップ
-- `py/`: 画像処理用のPython スクリプト（GIF アニメーション生成）
+
+`public/`がWeb サーバーへアップロードする範囲です。その外にあるファイルは公開されません。
+
+```
+public/                 ← ここだけをアップロード
+├── index.html          メインのHTML ファイル（レトロデザイン）
+├── counter.php         カウンター機能（動的画像生成）
+├── counter_view.php    訪問者番号の表示
+├── kiriban_submit.php  キリ番の投稿受付
+├── kiriban_view.php    過去のキリ番ゲッターリスト（表示量を制限）
+├── session_boot.php    session開始と送信元判定の共通処理
+├── .htaccess           セキュリティ設定とファイルアクセス制御
+├── .user.ini           CGI/FastCGI環境向けのPHP 設定
+├── robots.txt
+├── img/                サイトで使用する画像
+└── counter.txt / kiriban.txt   データファイル（.gitignore 対象）
+
+img/original_gif/       オリジナル画像のバックアップ（配信しない）
+py/                     画像処理用のPython スクリプト（GIF 生成）
+README.md
+```
 
 ## セキュリティ機能
 - **XSS対策**: 保存時と表示時の両方でHTML エスケープ処理
@@ -72,4 +82,4 @@
 - **2025年4月1日**: 株式会社hogehoge設立
 
 ## コントリビューション
-Pull request やIssue での報告を歓迎します。レトロデザインのコンセプトを維持しつつ、セキュリティや機能の改善にご協力ください。
+Pull request やIssue の報告を歓迎します。レトロデザインのコンセプトを維持しつつ、セキュリティや機能の改善にご協力ください。
