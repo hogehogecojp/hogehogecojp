@@ -419,11 +419,11 @@
 
                   // 投稿結果の表示
                   var messages = {
-                    ok: '☆カキコありがとう！　下のリストに反映されたよ♪',
-                    expired: '(T-T) 番号の有効期限が切れちゃったみたい…。お手数だけどページを再読み込みしてから、もう一度カキコしてね。',
-                    toofast: '(^^; カキコが早すぎるよ！　10秒ほど待ってからもう一度どうぞ。',
-                    session: '(T-T) ブラウザのCookieがOFFかも。CookieをONにしてから再読み込みしてね。',
-                    busy: '(>_<) いま混み合ってるみたい…。少し待ってからもう一度カキコしてね。'
+                    ok: '☆カキコありがとう☆キリ番BBS にカキコされたよ♪',
+                    expired: '(T-T) キリ番の有効期限が切れちゃったみたい。お手数だけどページを再読み込みしてから、もう一度カキコしてね♪',
+                    toofast: '(^^; カキコが早すぎるよ！10秒ほど待ってからもう一度どうぞ♪',
+                    session: '(T-T) ブラウザのCookie がオフかも。Cookie をオンにしてから再読み込みしてね♪',
+                    busy: '(>_<) いま混み合ってるみたい。少し待ってからもう一度カキコしてね♪'
                   };
                   var matched = /[?&]kiriban=([a-z]+)/.exec(window.location.search);
                   if (matched && Object.prototype.hasOwnProperty.call(messages, matched[1])) {
