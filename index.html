@@ -736,8 +736,8 @@
 
         <form id="contactForm">
           <p>
-            <label for="name">お名前:</label><br>
-            <input type="text" id="name" name="name" size="20">
+            <label for="contact-name">お名前:</label><br>
+            <input type="text" id="contact-name" name="name" size="20">
           </p>
           <p>
             <label for="email">メール:</label><br>
@@ -754,7 +754,7 @@
 
         <script>
           document.getElementById('sendButton').addEventListener('click', function () {
-            const name = document.getElementById('name').value.trim();
+            const name = document.getElementById('contact-name').value.trim();
             const email = document.getElementById('email').value.trim();
             const message = document.getElementById('message').value.trim();
 
