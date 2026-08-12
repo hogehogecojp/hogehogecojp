@@ -4,11 +4,12 @@ header("Content-Type: text/html; charset=UTF-8");
 header("X-Content-Type-Options: nosniff");
 header("X-Frame-Options: SAMEORIGIN"); // iframe内での表示を同一オリジンのみ許可
 
+require_once __DIR__ . '/session_boot.php';
+
 $visitId = $_GET['visit_id'] ?? '';
 $number = null;
 
-if (is_string($visitId) && preg_match('/\A[a-f0-9]{32}\z/', $visitId) === 1) {
-    session_start();
+if (is_string($visitId) && preg_match('/\A[a-f0-9]{32}\z/', $visitId) === 1 && hogehoge_session_start()) {
     $storedNumber = $_SESSION['counter_visits'][$visitId] ?? null;
     if (is_int($storedNumber) && $storedNumber > 0) {
         $number = $storedNumber;

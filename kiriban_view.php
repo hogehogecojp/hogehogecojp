@@ -4,7 +4,7 @@ header("Content-Type: text/html; charset=UTF-8");
 header("X-Content-Type-Options: nosniff");
 header("X-Frame-Options: SAMEORIGIN"); // iframe内での表示を同一オリジンのみ許可
 
-$kiriban_file = "kiriban.txt";
+$kiriban_file = getenv('HOGEHOGE_KIRIBAN_FILE') ?: __DIR__ . "/kiriban.txt";
 
 // ファイルが存在するかチェック
 if (!file_exists($kiriban_file)) {
@@ -15,8 +15,22 @@ if (!file_exists($kiriban_file)) {
     exit;
 }
 
-// ファイルを読み込み
-$lines = file($kiriban_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+// 書き込み中の中途半端な内容を読まないよう共有ロックをかける
+$lines = [];
+$kiribanHandle = @fopen($kiriban_file, 'r');
+if ($kiribanHandle !== false) {
+    if (flock($kiribanHandle, LOCK_SH)) {
+        $contents = stream_get_contents($kiribanHandle);
+        flock($kiribanHandle, LOCK_UN);
+        if (is_string($contents) && trim($contents) !== '') {
+            $split = preg_split('/\r\n|\r|\n/', rtrim($contents, "\r\n"));
+            if ($split !== false) {
+                $lines = $split;
+            }
+        }
+    }
+    fclose($kiribanHandle);
+}
 
 if (empty($lines)) {
     echo '<div style="font-family:\'ＭＳ Ｐゴシック\'; font-size:12px; text-align:center; padding:20px;">

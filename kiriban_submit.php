@@ -21,15 +21,25 @@ if (empty($referer) || strpos($referer, $host) === false) {
     exit;
 }
 
+require_once __DIR__ . '/session_boot.php';
+
+// 結果をindex.htmlへ伝える（無言でトップに戻さない）
+function kiriban_redirect(string $status): void
+{
+    header("Location: index.html?kiriban=" . rawurlencode($status) . "#kiriban");
+    exit;
+}
+
 // レート制限
-session_start();
+if (!hogehoge_session_start()) {
+    kiriban_redirect('session');
+}
+
 $now = time();
 $last_submit = $_SESSION['last_kiriban_submit'] ?? 0;
 if ($now - $last_submit < 10) { // 10秒間隔制限
-    header("Location: index.html");
-    exit;
+    kiriban_redirect('toofast');
 }
-$_SESSION['last_kiriban_submit'] = $now;
 
 // 入力取得とサニタイズ（文字数制限追加）
 $nameInput = $_POST['name'] ?? '';
@@ -52,15 +62,17 @@ foreach ($prohibited_words as $word) {
 // 画面に表示した番号を訪問IDから取得
 $visitId = $_POST['visit_id'] ?? '';
 if (!is_string($visitId) || preg_match('/\A[a-f0-9]{32}\z/', $visitId) !== 1) {
-    header("Location: index.html");
-    exit;
+    kiriban_redirect('expired');
 }
 
+// session期限切れ・投稿済みの訪問IDはここで弾く
 $number = $_SESSION['counter_visits'][$visitId] ?? null;
 if (!is_int($number) || $number <= 0) {
-    header("Location: index.html");
-    exit;
+    kiriban_redirect('expired');
 }
+
+// 検証を通過してから更新する。失敗した投稿で間隔制限を消費しない
+$_SESSION['last_kiriban_submit'] = $now;
 
 if ($name === '') $name = '匿名';
 if ($comment === '') $comment = '';
@@ -78,32 +90,28 @@ if ($kiribanHandle === false || !flock($kiribanHandle, LOCK_EX)) {
     if (is_resource($kiribanHandle)) {
         fclose($kiribanHandle);
     }
-    header("Location: index.html");
-    exit;
+    kiriban_redirect('busy');
 }
 
 $fileStat = fstat($kiribanHandle);
 if ($fileStat === false || $fileStat['size'] > 100000) { // 100KB制限
     flock($kiribanHandle, LOCK_UN);
     fclose($kiribanHandle);
-    header("Location: index.html");
-    exit;
+    kiriban_redirect('busy');
 }
 
 $contents = stream_get_contents($kiribanHandle);
 if ($contents === false) {
     flock($kiribanHandle, LOCK_UN);
     fclose($kiribanHandle);
-    header("Location: index.html");
-    exit;
+    kiriban_redirect('busy');
 }
 
 $lines = $contents === '' ? [] : preg_split('/\r\n|\r|\n/', rtrim($contents, "\r\n"));
 if ($lines === false) {
     flock($kiribanHandle, LOCK_UN);
     fclose($kiribanHandle);
-    header("Location: index.html");
-    exit;
+    kiriban_redirect('busy');
 }
 
 // 3行目に挿入（インデックス2）
@@ -118,8 +126,7 @@ if (!ftruncate($kiribanHandle, 0)
 ) {
     flock($kiribanHandle, LOCK_UN);
     fclose($kiribanHandle);
-    header("Location: index.html");
-    exit;
+    kiriban_redirect('busy');
 }
 
 flock($kiribanHandle, LOCK_UN);
@@ -128,6 +135,5 @@ fclose($kiribanHandle);
 unset($_SESSION['counter_visits'][$visitId]);
 session_write_close();
 
-header("Location: index.html");
-exit;
+kiriban_redirect('ok');
 ?>

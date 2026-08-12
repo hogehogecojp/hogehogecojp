@@ -368,7 +368,10 @@
               </script>
               <!-- /キリ番バリデーション -->
 
-              <form action="kiriban_submit.php" method="post" onsubmit="return validateKiribanForm();">
+              <!-- 投稿結果のお知らせ -->
+              <div id="kiriban-message" style="display:none; font-family:'ＭＳ Ｐゴシック'; font-size:12px; text-align:left; border:1px solid #cc0000; background-color:#ffffcc; color:#cc0000; padding:4px; margin-bottom:5px; width:95%;"></div>
+
+              <form id="kiriban" action="kiriban_submit.php" method="post" onsubmit="return validateKiribanForm();">
                 <input type="hidden" name="visit_id" id="kiriban_visit_id" value="">
                 <div style="font-family:'ＭＳ Ｐゴシック'; font-size:12px; text-align:left; background-color:#ffe0ff; padding:5px; width:95%;">
                   <div style="margin-bottom:5px;">
@@ -412,6 +415,26 @@
                       visitInput.value = value;
                     }
                   };
+
+                  // 投稿結果の表示
+                  var messages = {
+                    ok: '☆カキコありがとう！　下のリストに反映されたよ♪',
+                    expired: '(T-T) 番号の有効期限が切れちゃったみたい…。お手数だけどページを再読み込みしてから、もう一度カキコしてね。',
+                    toofast: '(^^; カキコが早すぎるよ！　10秒ほど待ってからもう一度どうぞ。',
+                    session: '(T-T) ブラウザのCookieがOFFかも。CookieをONにしてから再読み込みしてね。',
+                    busy: '(>_<) いま混み合ってるみたい…。少し待ってからもう一度カキコしてね。'
+                  };
+                  var matched = /[?&]kiriban=([a-z]+)/.exec(window.location.search);
+                  if (matched && Object.prototype.hasOwnProperty.call(messages, matched[1])) {
+                    var messageBox = document.getElementById('kiriban-message');
+                    messageBox.textContent = messages[matched[1]];
+                    if (matched[1] === 'ok') {
+                      messageBox.style.borderColor = '#008000';
+                      messageBox.style.color = '#008000';
+                      messageBox.style.backgroundColor = '#e0ffe0';
+                    }
+                    messageBox.style.display = 'block';
+                  }
 
                   counterImage.onload = function () {
                     counterFrame.src = 'counter_view.php?visit_id=' + encodeURIComponent(visitId);
