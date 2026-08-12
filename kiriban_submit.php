@@ -13,15 +13,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// CSRF対策（リファラーチェック）
-$referer = $_SERVER['HTTP_REFERER'] ?? '';
-$host = $_SERVER['HTTP_HOST'] ?? '';
-if (empty($referer) || strpos($referer, $host) === false) {
+require_once __DIR__ . '/session_boot.php';
+
+// CSRF対策（送信元チェック）。判定できないときは拒否する
+if (hogehoge_is_same_origin() !== true) {
     header("HTTP/1.1 403 Forbidden");
     exit;
 }
-
-require_once __DIR__ . '/session_boot.php';
 
 // 結果をindex.htmlへ伝える（無言でトップに戻さない）
 function kiriban_redirect(string $status): void
@@ -54,14 +52,6 @@ $comment = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $comment) ?? '');
 // 文字数制限
 $name = mb_substr($name, 0, 50);      // 50文字まで
 $comment = mb_substr($comment, 0, 200); // 200文字まで
-
-// 不適切な文字列のフィルタリング
-$prohibited_words = ['<script>', 'javascript:', 'data:', 'vbscript:'];
-foreach ($prohibited_words as $word) {
-    $name = str_ireplace($word, '***', $name);
-    $comment = str_ireplace($word, '***', $comment);
-}
-
 
 // 画面に表示した番号を訪問IDから取得
 $visitId = $_POST['visit_id'] ?? '';
