@@ -47,6 +47,10 @@ $commentInput = $_POST['comment'] ?? '';
 $name = is_string($nameInput) ? htmlspecialchars(trim($nameInput), ENT_QUOTES, 'UTF-8') : '';
 $comment = is_string($commentInput) ? htmlspecialchars(trim($commentInput), ENT_QUOTES, 'UTF-8') : '';
 
+// 改行と制御文字を空白へ寄せる。1投稿を必ず1行に収め、行の偽造を防ぐ
+$name = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $name) ?? '');
+$comment = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $comment) ?? '');
+
 // 文字数制限
 $name = mb_substr($name, 0, 50);      // 50文字まで
 $comment = mb_substr($comment, 0, 200); // 200文字まで

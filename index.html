@@ -452,7 +452,8 @@
               <br>
 
               <div style="background-color:#ffffff; margin-top:5px;">
-                <iframe src="kiriban_view.php" title="過去のキリ番ゲッターリスト" width="100%" height="330" frameborder="0" style="font-family:'ＭＳ Ｐゴシック'; font-size:12px;"></iframe>
+                <!-- loading="lazy": 画面外なら読み込まず、混雑時のPHP実行数を減らす -->
+                <iframe src="kiriban_view.php" loading="lazy" title="過去のキリ番ゲッターリスト" width="100%" height="330" frameborder="0" style="font-family:'ＭＳ Ｐゴシック'; font-size:12px;"></iframe>
               </div>
               <!-- /過去のゲッター表示 -->
               <!-- /☆キリ番ゲッター☆ -->
