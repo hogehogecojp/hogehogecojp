@@ -87,8 +87,9 @@ if ($kiribanHandle === false || !flock($kiribanHandle, LOCK_EX)) {
     kiriban_redirect('busy');
 }
 
+// 暴走時の保険。通常は1MBを目安に手動で分割・整理する
 $fileStat = fstat($kiribanHandle);
-if ($fileStat === false || $fileStat['size'] > 100000) { // 100KB制限
+if ($fileStat === false || $fileStat['size'] > 10000000) { // 10MB制限
     flock($kiribanHandle, LOCK_UN);
     fclose($kiribanHandle);
     kiriban_redirect('busy');

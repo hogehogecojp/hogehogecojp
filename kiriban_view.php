@@ -7,7 +7,7 @@ header("X-Frame-Options: SAMEORIGIN"); // iframe内での表示を同一オリ�
 $kiriban_file = getenv('HOGEHOGE_KIRIBAN_FILE') ?: __DIR__ . "/kiriban.txt";
 
 // 表示量の上限。投稿が増えてもページの表示量を一定に保つ
-$recentBytes = 30000; // 新しい投稿を表示するバイト数
+$recentBytes = 100000; // 新しい投稿を表示するバイト数
 $oldestCount = 100;   // 常に表示する最初期の投稿数
 $headerCount = 2;     // 先頭の固定行。新しい投稿はこの下に挿入される
 
