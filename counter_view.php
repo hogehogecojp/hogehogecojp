@@ -3,6 +3,8 @@
 header("Content-Type: text/html; charset=UTF-8");
 header("X-Content-Type-Options: nosniff");
 header("X-Frame-Options: SAMEORIGIN"); // iframe内での表示を同一オリジンのみ許可
+// 親ページへ訪問IDを渡すinline scriptだけを許可する
+header("Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'");
 
 require_once __DIR__ . '/session_boot.php';
 

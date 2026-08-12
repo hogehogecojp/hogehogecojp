@@ -3,6 +3,8 @@
 header("Content-Type: text/html; charset=UTF-8");
 header("X-Content-Type-Options: nosniff");
 header("X-Frame-Options: SAMEORIGIN"); // iframe内での表示を同一オリジンのみ許可
+// 投稿を出力する画面。scriptも外部リソースも使わないため全面的に禁止する
+header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'");
 
 $kiriban_file = getenv('HOGEHOGE_KIRIBAN_FILE') ?: __DIR__ . "/kiriban.txt";
 
