@@ -1,8 +1,8 @@
 <?php
-// リファラーチェック
-$referer = $_SERVER['HTTP_REFERER'] ?? '';
-$host = $_SERVER['HTTP_HOST'] ?? '';
-if (!empty($referer) && strpos($referer, $host) === false) {
+require_once __DIR__ . '/session_boot.php';
+
+// 送信元チェック。判定できないときは通し、カウントを止めない
+if (hogehoge_is_same_origin() === false) {
     header("HTTP/1.1 403 Forbidden");
     exit;
 }
@@ -13,19 +13,97 @@ header("Cache-Control: no-cache, no-store, must-revalidate");
 header("X-Content-Type-Options: nosniff");
 
 // カウンターファイルのパス
-$counterFile = "counter.txt";
-$digitImage = "img/strip.gif"; // 数字画像のパス
+$counterFile = getenv('HOGEHOGE_COUNTER_FILE') ?: __DIR__ . "/counter.txt";
+$digitImage = __DIR__ . "/img/strip.gif"; // 数字画像のパス
 $frameThickness = 4; // フレームの太さ（ピクセル単位）
 
-// ファイルが存在しない場合は作成
-if (!file_exists($counterFile)) {
-    file_put_contents($counterFile, "0");
+// ページごとの訪問ID（表示番号と投稿番号の紐付けに使用）
+$visitId = $_GET['visit_id'] ?? '';
+if (!is_string($visitId) || ($visitId !== '' && preg_match('/\A[a-f0-9]{32}\z/', $visitId) !== 1)) {
+    header("HTTP/1.1 400 Bad Request");
+    exit;
 }
 
-// カウンターの読み込みと更新
-$counter = (int)file_get_contents($counterFile);
-$counter++;
-file_put_contents($counterFile, $counter, LOCK_EX);
+// 読み込み・加算・書き込みを同じロック内で行う。
+// sessionより先に加算し、session側の不調でカウントが止まるのを避ける。
+// 'c+' はファイルが無ければ作成し、既存ファイルはtruncateしない。
+$counterExisted = file_exists($counterFile);
+$counterHandle = @fopen($counterFile, 'c+');
+if ($counterHandle === false || !flock($counterHandle, LOCK_EX)) {
+    if (is_resource($counterHandle)) {
+        fclose($counterHandle);
+    }
+    header("HTTP/1.1 500 Internal Server Error");
+    exit;
+}
+
+$counterText = stream_get_contents($counterHandle);
+$counterText = $counterText === false ? '' : trim($counterText);
+
+// 新規作成時のみ0から開始。既存ファイルが空・不正なら書き込まずエラーにする
+if ($counterText === '' && !$counterExisted) {
+    $counterText = '0';
+}
+
+if (preg_match('/\A[0-9]+\z/', $counterText) !== 1) {
+    flock($counterHandle, LOCK_UN);
+    fclose($counterHandle);
+    header("HTTP/1.1 500 Internal Server Error");
+    exit;
+}
+
+$currentCounter = filter_var($counterText, FILTER_VALIDATE_INT, [
+    'options' => ['min_range' => 0],
+]);
+if ($currentCounter === false || $currentCounter >= PHP_INT_MAX) {
+    flock($counterHandle, LOCK_UN);
+    fclose($counterHandle);
+    header("HTTP/1.1 500 Internal Server Error");
+    exit;
+}
+
+$counter = $currentCounter + 1;
+$newCounterText = (string)$counter;
+
+// 先に書いてから切り詰める。truncateが先だと書き込み失敗時に桁の欠けた値が残る
+rewind($counterHandle);
+if (fwrite($counterHandle, $newCounterText) !== strlen($newCounterText)
+    || !fflush($counterHandle)
+) {
+    // 部分書き込みを元の値へ戻す
+    rewind($counterHandle);
+    if (fwrite($counterHandle, $counterText) === strlen($counterText)) {
+        fflush($counterHandle);
+        ftruncate($counterHandle, strlen($counterText));
+    }
+    flock($counterHandle, LOCK_UN);
+    fclose($counterHandle);
+    header("HTTP/1.1 500 Internal Server Error");
+    exit;
+}
+
+// 旧い値の末尾（改行など）を切り捨てる。失敗しても読み取り側でtrimされる
+ftruncate($counterHandle, strlen($newCounterText));
+fflush($counterHandle);
+
+flock($counterHandle, LOCK_UN);
+fclose($counterHandle);
+
+// ここから先が失敗してもカウントは確定済みなので、画像生成は続ける
+if ($visitId !== '' && hogehoge_session_start()) {
+    if (!isset($_SESSION['counter_visits']) || !is_array($_SESSION['counter_visits'])) {
+        $_SESSION['counter_visits'] = [];
+    }
+
+    $_SESSION['counter_visits'][$visitId] = $counter;
+
+    // F5連打でsessionが増え続けないよう、直近20ページ分だけ保持する
+    while (count($_SESSION['counter_visits']) > 20) {
+        array_shift($_SESSION['counter_visits']);
+    }
+
+    session_write_close();
+}
 
 // 数字ごとの座標計算
 $digitWidth = 15;

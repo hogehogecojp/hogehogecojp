@@ -5,6 +5,21 @@
     Require all denied
 </Files>
 
+# robots.txt はクローラへ公開する（上の *.txt 拒否を打ち消す）
+<Files "robots.txt">
+    Require all granted
+</Files>
+
+# 共通ライブラリへの直接アクセスを制限
+<Files "session_boot.php">
+    Require all denied
+</Files>
+
+# PHP設定ファイルへの直接アクセスを制限
+<Files ".user.ini">
+    Require all denied
+</Files>
+
 # ディレクトリリスト表示を無効化
 Options -Indexes
 
@@ -15,16 +30,15 @@ Options -Indexes
     Header always set Referrer-Policy strict-origin-when-cross-origin
 </IfModule>
 
-# PHPエラー表示を無効化
-php_flag display_errors Off
-php_flag log_errors On
+# PHP設定（モジュール版でのみ有効）
+# CGI/FastCGI環境には mod_php が無く、囲わない php_value は500の原因になる。
+# 同じ内容を .user.ini にも置き、session関連は session_boot.php で指定する。
+<IfModule mod_php.c>
+    # PHPエラー表示を無効化
+    php_flag display_errors Off
+    php_flag log_errors On
 
-# ファイルアップロード制限
-php_value upload_max_filesize 1M
-php_value post_max_size 1M
-
-# セッション設定の強化
-php_value session.cookie_httponly 1
-php_value session.use_strict_mode 1
-php_value session.cookie_secure 1
-php_value session.cookie_samesite Strict
+    # ファイルアップロード制限
+    php_value upload_max_filesize 1M
+    php_value post_max_size 1M
+</IfModule>

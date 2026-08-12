@@ -28,7 +28,7 @@
   <link rel="icon" type="image/png" href="img/icon.png">
 
   <!-- セキュリティ対策 -->
-  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.clarity.ms; object-src 'none';">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.clarity.ms; object-src 'none'; base-uri 'self'; form-action 'self';">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 
@@ -234,7 +234,7 @@
         </h1>
 
         <!-- アクセスカウンター -->
-        <font size="2">あなたは <img src="counter.php" height="28" style="max-width: 100%;" alt="アクセスカウンター"> 人目のお客さまです。</font>
+        <font size="2">あなたは <img id="access-counter" height="28" style="display:none; max-width:100%;" alt="アクセスカウンター"><noscript><img src="counter.php" height="28" style="max-width:100%;" alt="アクセスカウンター（JavaScript無効時）"></noscript> 人目のお客さまです。</font>
         <!-- /アクセスカウンター -->
 
         <br>
@@ -293,7 +293,7 @@
     <tr>
       <td colspan="2" align="center" bgcolor="#000000" background="img/space.gif">
         <marquee scrollamount="5" behavior="alternate" direction="left">
-          <font color="#FF00FF"><strong>🌟 株式会社hogehoge のウェブサイトへようこそ！ 🌟</strong></font>
+          <font color="#FF00FF"><strong>🌟 株式会社hogehoge のホームページへようこそ！ 🌟</strong></font>
         </marquee>
       </td>
     </tr>
@@ -310,6 +310,7 @@
                 <a href="#about"><img src="img/button_about.gif" width="240" height="50" alt="会社概要" border="0"></a><br>
                 <a href="#services"><img src="img/button_services.gif" width="240" height="50" alt="事業内容" border="0"></a><br>
                 <a href="#contact"><img src="img/button_contact.gif" width="240" height="50" alt="お問い合わせ" border="0"></a><br>
+                <a href="#history">■　更新履歴</a><br>
                 <br>
                 <div align="center">
                   <img src="img/yellowcorn.gif" width="50" height="50" alt="工事中" border="0"><br>
@@ -335,6 +336,12 @@
                 function validateKiribanForm() {
                   var name = document.getElementById('name').value;
                   var comment = document.getElementById('comment').value;
+                  var visitId = document.getElementById('kiriban_visit_id').value;
+
+                  if (visitId === '') {
+                    alert('番号を取得できませんでした。ページを再読み込みしてください。');
+                    return false;
+                  }
 
                   // 基本的な文字数チェック
                   if (name.length > 50) {
@@ -362,10 +369,14 @@
               </script>
               <!-- /キリ番バリデーション -->
 
-              <form action="kiriban_submit.php" method="post" onsubmit="return validateKiribanForm();">
+              <!-- 投稿結果のお知らせ -->
+              <div id="kiriban-message" style="display:none; font-family:'ＭＳ Ｐゴシック'; font-size:12px; text-align:left; border:1px solid #cc0000; background-color:#ffffcc; color:#cc0000; padding:4px; margin-bottom:5px; width:95%;"></div>
+
+              <form id="kiriban" action="kiriban_submit.php" method="post" onsubmit="return validateKiribanForm();">
+                <input type="hidden" name="visit_id" id="kiriban_visit_id" value="">
                 <div style="font-family:'ＭＳ Ｐゴシック'; font-size:12px; text-align:left; background-color:#ffe0ff; padding:5px; width:95%;">
                   <div style="margin-bottom:5px;">
-                    <iframe src="counter_view.php" title="あなたが何番目か表示するカウンター" width="100%" height="40" frameborder="0" scrolling="no"></iframe>
+                    <iframe id="kiriban-counter-frame" title="あなたが何番目か表示するカウンター" width="100%" height="40" frameborder="0" scrolling="no"></iframe>
                   </div>
 
                   <label for="name">お名前（省略可）：</label><br>
@@ -380,12 +391,70 @@
                 </div>
               </form>
 
+              <script>
+                (function () {
+                  var counterImage = document.getElementById('access-counter');
+                  var counterFrame = document.getElementById('kiriban-counter-frame');
+                  var visitInput = document.getElementById('kiriban_visit_id');
+                  var visitId = '';
+
+                  // ページごとに32桁の訪問IDを作る（古いブラウザでは乱数へフォールバック）
+                  if (window.crypto && window.crypto.getRandomValues) {
+                    var randomValues = new Uint8Array(16);
+                    window.crypto.getRandomValues(randomValues);
+                    for (var i = 0; i < randomValues.length; i++) {
+                      visitId += ('0' + randomValues[i].toString(16)).slice(-2);
+                    }
+                  } else {
+                    for (var j = 0; j < 32; j++) {
+                      visitId += Math.floor(Math.random() * 16).toString(16);
+                    }
+                  }
+
+                  window.setKiribanVisitId = function (value) {
+                    if (/^[a-f0-9]{32}$/.test(value)) {
+                      visitInput.value = value;
+                    }
+                  };
+
+                  // 投稿結果の表示
+                  var messages = {
+                    ok: '☆カキコありがとう☆キリ番BBS にカキコされたよ♪',
+                    expired: '(T-T) キリ番の有効期限が切れちゃったみたい。お手数だけどページを再読み込みしてから、もう一度カキコしてね♪',
+                    toofast: '(^^; カキコが早すぎるよ！10秒ほど待ってからもう一度どうぞ♪',
+                    session: '(T-T) ブラウザのCookie がオフかも。Cookie をオンにしてから再読み込みしてね♪',
+                    busy: '(>_<) いま混み合ってるみたい。少し待ってからもう一度カキコしてね♪'
+                  };
+                  var matched = /[?&]kiriban=([a-z]+)/.exec(window.location.search);
+                  if (matched && Object.prototype.hasOwnProperty.call(messages, matched[1])) {
+                    var messageBox = document.getElementById('kiriban-message');
+                    messageBox.textContent = messages[matched[1]];
+                    if (matched[1] === 'ok') {
+                      messageBox.style.borderColor = '#008000';
+                      messageBox.style.color = '#008000';
+                      messageBox.style.backgroundColor = '#e0ffe0';
+                    }
+                    messageBox.style.display = 'block';
+                  }
+
+                  counterImage.onload = function () {
+                    counterFrame.src = 'counter_view.php?visit_id=' + encodeURIComponent(visitId);
+                  };
+                  counterImage.onerror = function () {
+                    counterFrame.src = 'counter_view.php?visit_id=' + encodeURIComponent(visitId);
+                  };
+                  counterImage.style.display = 'inline';
+                  counterImage.src = 'counter.php?visit_id=' + encodeURIComponent(visitId);
+                })();
+              </script>
+
               <!-- /フォーム -->
 
               <br>
 
               <div style="background-color:#ffffff; margin-top:5px;">
-                <iframe src="kiriban_view.php" title="過去のキリ番ゲッターリスト" width="100%" height="330" frameborder="0" style="font-family:'ＭＳ Ｐゴシック'; font-size:12px;"></iframe>
+                <!-- loading="lazy": 画面外なら読み込まず、混雑時のPHP実行数を減らす -->
+                <iframe src="kiriban_view.php" loading="lazy" title="過去のキリ番ゲッターリスト" width="100%" height="330" frameborder="0" style="font-family:'ＭＳ Ｐゴシック'; font-size:12px;"></iframe>
               </div>
               <!-- /過去のゲッター表示 -->
               <!-- /☆キリ番ゲッター☆ -->
@@ -418,6 +487,22 @@
       <td valign="top">
 
         <p>ご覧いただき、誠にありがとうございます。</p>
+
+
+        <h2 id="history" align="center">
+          <div style="display:inline-block; padding:5px 20px; font-style: italic; font-weight: bold; font-family: Arial, sans-serif; font-size: 24px; color: #000000; background-color: transparent; box-shadow: 5px 5px 5px #888888;">
+            <span style="text-shadow: 2px 2px 2px #888888;">
+              更新履歴
+            </span>
+          </div>
+        </h2>
+
+        <ul>
+          <li>2026年8月12日　キリ番BBSで、画面に表示された番号と登録される番号がずれる不具合を修正しました。</li>
+          <li>2026年8月12日　アクセスカウンターが0に戻ってしまう問題を修正しました。</li>
+          <li>更新履歴を追加しました。</li>
+        </ul>
+
 
         <center><img src="img/kira_line1.gif" width="233" height="22" alt="星とアスタリスクのアニメライン"></center>
         <!-- Special Thanks
@@ -464,6 +549,8 @@
                 プログラミング言語は多くが英語をベースに記述されるため、「foo」「bar」「baz」が広く使われています。<br>
                 日本では特に「hoge（ほげ）」「fuga（ふが）」「piyo（ぴよ）」、およびそれらを繰り返した「hogehoge（ほげほげ）」などが好まれる傾向にあります。
             </p>
+
+            <div align="right"><a href="#home">▲上に戻る</a></div>
 
             <br>
             <br>
@@ -513,6 +600,8 @@
         </h2>
 
         <ul>
+          <li>2026年4月1日　株式会社hogehog 1周年</li>
+          <li>2025年11月7日　株式会社ベクトル様の<a href="https://vws.vektor-inc.co.jp/support/partners" target="_blank" title="ベクトル公式テクニカルパートナー">ベクトル公式テクニカルパートナー</a>に加わりました。</li>
           <li>2025年10月4日　<a href="https://kansai.wordcamp.org/2025/sponsor/hogehoge/" target="_blank" title="WordCamp Kansai 2025 株式会社hogehoge">WordCamp Kansai 2025</a> のブロンズスポンサーとして協賛いたします。</li>
           <li>2025年6月24日　<a href="https://www.mebic.com/cluster/hogehoge.html" target="_blank" title="MEBIC クリエイティブクラスター 株式会社hogehoge">MEBIC クリエイティブクラスター</a> に掲載していただきました。</li>
           <li>2025年4月3日　<a href="https://x.com/hashtag/%E3%83%90%E3%82%AB%E6%AF%9B%E3%83%A9%E3%82%B8%E3%82%AA" target="_blank" title="#バカ毛ラジオ">#バカ毛ラジオ</a> でこのホームページを取り上げていただきました。</li>
@@ -647,8 +736,8 @@
 
         <form id="contactForm">
           <p>
-            <label for="name">お名前:</label><br>
-            <input type="text" id="name" name="name" size="20">
+            <label for="contact-name">お名前:</label><br>
+            <input type="text" id="contact-name" name="name" size="20">
           </p>
           <p>
             <label for="email">メール:</label><br>
@@ -665,7 +754,7 @@
 
         <script>
           document.getElementById('sendButton').addEventListener('click', function () {
-            const name = document.getElementById('name').value.trim();
+            const name = document.getElementById('contact-name').value.trim();
             const email = document.getElementById('email').value.trim();
             const message = document.getElementById('message').value.trim();
 
@@ -695,7 +784,8 @@
         </a>
 
         <br>
-        <small>2025 © 株式会社hogehoge All rights reserved.</small>
+        <!-- 末尾のピリオドは隠しリンク。周囲の文字と同じ白にしてある -->
+        <small>2025 © 株式会社hogehoge All rights reserved<a href="https://github.com/hogehogecojp/hogehogecojp" target="_blank" rel="noopener" style="color:#ffffff; text-decoration:none;">.</a></small>
       </td>
     </tr>
   </table>
