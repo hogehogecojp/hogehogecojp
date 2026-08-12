@@ -5,6 +5,11 @@
     Require all denied
 </Files>
 
+# robots.txt はクローラへ公開する（上の *.txt 拒否を打ち消す）
+<Files "robots.txt">
+    Require all granted
+</Files>
+
 # 共通ライブラリへの直接アクセスを制限
 <Files "session_boot.php">
     Require all denied
