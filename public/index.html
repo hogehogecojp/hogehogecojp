@@ -754,11 +754,12 @@
 
         <script>
           document.getElementById('sendButton').addEventListener('click', function () {
-            const name = document.getElementById('contact-name').value.trim();
+            const inputName = document.getElementById('contact-name').value.trim();
+            const name = inputName === '' ? '名無し' : inputName;
             const email = document.getElementById('email').value.trim();
             const message = document.getElementById('message').value.trim();
 
-            const subject = encodeURIComponent(`${name}からの問い合わせ`);
+            const subject = encodeURIComponent(`${name}さんからの問い合わせ`);
             const body = encodeURIComponent(`メール: ${email}\n\n内容:\n${message}`);
 
             const mailtoLink = `mailto:info@hogehoge.co.jp?subject=${subject}&body=${body}`;
